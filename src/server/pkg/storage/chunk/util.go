@@ -2,37 +2,18 @@ package chunk
 
 import (
 	"bytes"
-	"context"
 	"math/rand"
-	"os"
-	"testing"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/pachyderm/pachyderm/src/client/pkg/require"
 	"github.com/pachyderm/pachyderm/src/server/pkg/obj"
 )
 
-const (
-	// KB is Kilobyte.
-	KB = 1024
-	// MB is Megabyte.
-	MB = 1024 * KB
-)
-
-// LocalStorage creates a local chunk storage instance.
-// Useful for storage layer tests.
-func LocalStorage(tb testing.TB) (obj.Client, *Storage) {
-	wd, err := os.Getwd()
-	require.NoError(tb, err)
-	objC, err := obj.NewLocalClient(wd)
-	require.NoError(tb, err)
-	return objC, NewStorage(objC)
-}
-
-// Cleanup cleans up a local chunk storage instance.
-func Cleanup(objC obj.Client, chunks *Storage) {
-	chunks.DeleteAll(context.Background())
-	objC.Delete(context.Background(), prefix)
+// WithLocalStorage creates a local storage instance for testing during the lifetime of
+// the callback.
+func WithLocalStorage(f func(obj.Client, *Storage) error, opts ...StorageOption) error {
+	return obj.WithLocalClient(func(objClient obj.Client) error {
+		return f(objClient, NewStorage(objClient, opts...))
+	})
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

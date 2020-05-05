@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	units "github.com/docker/go-units"
 	"github.com/pachyderm/pachyderm/src/server/pkg/obj"
 	"github.com/pachyderm/pachyderm/src/server/pkg/storage/chunk"
 	"github.com/pachyderm/pachyderm/src/server/pkg/storage/fileset/index"
@@ -22,13 +23,13 @@ const (
 	prefix     = "pfs"
 	// DefaultMemoryThreshold is the default for the memory threshold that must
 	// be met before a file set part is serialized (excluding close).
-	DefaultMemoryThreshold = 1024 * chunk.MB
+	DefaultMemoryThreshold = 1024 * units.MB
 	// DefaultShardThreshold is the default for the size threshold that must
 	// be met before a shard is created by the shard function.
-	DefaultShardThreshold = 1024 * chunk.MB
+	DefaultShardThreshold = 1024 * units.MB
 	// DefaultLevelZeroSize is the default size for level zero in the compacted
 	// representation of a file set.
-	DefaultLevelZeroSize = 1 * chunk.MB
+	DefaultLevelZeroSize = 1 * units.MB
 	// DefaultLevelSizeBase is the default base of the exponential growth function
 	// for level sizes in the compacted representation of a file set.
 	DefaultLevelSizeBase = 10
@@ -63,15 +64,20 @@ func NewStorage(objC obj.Client, chunks *chunk.Storage, opts ...StorageOption) *
 	return s
 }
 
+// ChunkStorage returns the underlying chunk storage instance for this storage instance.
+func (s *Storage) ChunkStorage() *chunk.Storage {
+	return s.chunks
+}
+
 // New creates a new in-memory fileset.
 func (s *Storage) New(ctx context.Context, fileSet, tag string, opts ...Option) *FileSet {
 	fileSet = applyPrefix(fileSet)
 	return newFileSet(ctx, s, fileSet, s.memThreshold, tag, opts...)
 }
 
-func (s *Storage) newWriter(ctx context.Context, fileSet string) *Writer {
+func (s *Storage) newWriter(ctx context.Context, fileSet string, indexFunc func(*index.Index) error) *Writer {
 	fileSet = applyPrefix(fileSet)
-	return newWriter(ctx, s.objC, s.chunks, fileSet)
+	return newWriter(ctx, s.objC, s.chunks, fileSet, indexFunc)
 }
 
 // (bryce) expose some notion of read ahead (read a certain number of chunks in parallel).
@@ -96,6 +102,19 @@ func (s *Storage) NewMergeReader(ctx context.Context, fileSets []string, opts ..
 	return newMergeReader(rs), nil
 }
 
+// ResolveIndexes resolves index entries that are spread across multiple filesets.
+func (s *Storage) ResolveIndexes(ctx context.Context, fileSets []string, f func(*index.Index) error, opts ...index.Option) error {
+	mr, err := s.NewMergeReader(ctx, fileSets, opts...)
+	if err != nil {
+		return err
+	}
+	w := s.newWriter(ctx, "", f)
+	if err := mr.WriteTo(w); err != nil {
+		return err
+	}
+	return w.Close()
+}
+
 // Shard shards the merge of the file sets with the passed in prefix into file ranges.
 // (bryce) this should be extended to be more configurable (different criteria
 // for creating shards).
@@ -112,7 +131,7 @@ func (s *Storage) Shard(ctx context.Context, fileSets []string, shardFunc ShardF
 func (s *Storage) Compact(ctx context.Context, outputFileSet string, inputFileSets []string, opts ...index.Option) error {
 	outputFileSet = applyPrefix(outputFileSet)
 	inputFileSets = applyPrefixes(inputFileSets)
-	w := s.newWriter(ctx, outputFileSet)
+	w := s.newWriter(ctx, outputFileSet, nil)
 	mr, err := s.NewMergeReader(ctx, inputFileSets, opts...)
 	if err != nil {
 		return err
@@ -201,6 +220,9 @@ func (s *Storage) CompactSpec(ctx context.Context, fileSet string, compactedFile
 func (s *Storage) Delete(ctx context.Context, fileSet string) error {
 	fileSet = applyPrefix(fileSet)
 	return s.objC.Walk(ctx, fileSet, func(name string) error {
+		if err := s.chunks.DeleteSemanticReference(ctx, name); err != nil {
+			return err
+		}
 		return s.objC.Delete(ctx, name)
 	})
 }

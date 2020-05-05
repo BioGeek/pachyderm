@@ -392,6 +392,9 @@ func (c *pfsBuilderClient) PutTar(ctx context.Context, opts ...grpc.CallOption) 
 func (c *pfsBuilderClient) GetTar(ctx context.Context, req *pfs.GetTarRequest, opts ...grpc.CallOption) (pfs.API_GetTarClient, error) {
 	return nil, unsupportedError("GetTar")
 }
+func (c *pfsBuilderClient) GetTarConditional(ctx context.Context, opts ...grpc.CallOption) (pfs.API_GetTarConditionalClient, error) {
+	return nil, unsupportedError("GetTarConditional")
+}
 
 func (c *objectBuilderClient) PutObject(ctx context.Context, opts ...grpc.CallOption) (pfs.ObjectAPI_PutObjectClient, error) {
 	return nil, unsupportedError("PutObject")
@@ -452,6 +455,12 @@ func (c *objectBuilderClient) DeleteTags(ctx context.Context, req *pfs.DeleteTag
 }
 func (c *objectBuilderClient) Compact(ctx context.Context, req *types.Empty, opts ...grpc.CallOption) (*types.Empty, error) {
 	return nil, unsupportedError("Compact")
+}
+func (c *objectBuilderClient) PutObjDirect(ctx context.Context, opts ...grpc.CallOption) (pfs.ObjectAPI_PutObjDirectClient, error) {
+	return nil, unsupportedError("PutObj")
+}
+func (c *objectBuilderClient) GetObjDirect(ctx context.Context, req *pfs.GetObjDirectRequest, opts ...grpc.CallOption) (pfs.ObjectAPI_GetObjDirectClient, error) {
+	return nil, unsupportedError("GetObj")
 }
 
 func (c *ppsBuilderClient) CreateJob(ctx context.Context, req *pps.CreateJobRequest, opts ...grpc.CallOption) (*pps.Job, error) {

@@ -1179,8 +1179,9 @@ func (a *APIServer) userCodeEnv(jobID string, outputCommitID string, data []*Inp
 		// mock a ServiceEnv. Once we can create mock ServiceEnvs, we should store
 		// a ServiceEnv in worker.APIServer, rewrite newTestAPIServer and
 		// NewAPIServer, and then change this code.
-		result = append(result, fmt.Sprintf("S3_ENDPOINT=http://%s:%s",
-			ppsutil.SidecarS3GatewayService(jobID), os.Getenv("S3GATEWAY_PORT")))
+		result = append(result, fmt.Sprintf("S3_ENDPOINT=http://%s.%s:%s",
+			ppsutil.SidecarS3GatewayService(jobID), a.namespace,
+			os.Getenv("S3GATEWAY_PORT")))
 	}
 	return result
 }
@@ -1604,7 +1605,7 @@ func (a *APIServer) getHashtrees(ctx context.Context, pachClient *client.APIClie
 				return err
 			}
 			// Read the full datum hashtree in memory
-			objR, err := objClient.Reader(ctx, path, 0, 0)
+			objR, err := pachClient.DirectObjReader(path)
 			if err != nil {
 				return err
 			}
@@ -1681,7 +1682,7 @@ func (a *APIServer) getParentHashTree(ctx context.Context, pachClient *client.AP
 	if err != nil {
 		return nil, err
 	}
-	return objClient.Reader(ctx, path, 0, 0)
+	return pachClient.DirectObjReader(path)
 }
 
 func writeIndex(pachClient *client.APIClient, objClient obj.Client, tree *pfs.Object, idx []byte) (retErr error) {
@@ -1693,7 +1694,7 @@ func writeIndex(pachClient *client.APIClient, objClient obj.Client, tree *pfs.Ob
 	if err != nil {
 		return err
 	}
-	idxW, err := objClient.Writer(pachClient.Ctx(), path+hashtree.IndexPath)
+	idxW, err := pachClient.DirectObjWriter(path + hashtree.IndexPath)
 	if err != nil {
 		return err
 	}

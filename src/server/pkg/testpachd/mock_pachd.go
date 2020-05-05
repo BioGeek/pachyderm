@@ -398,6 +398,7 @@ type deleteAllPFSFunc func(context.Context, *types.Empty) (*types.Empty, error)
 type fsckFunc func(*pfs.FsckRequest, pfs.API_FsckServer) error
 type putTarFunc func(pfs.API_PutTarServer) error
 type getTarFunc func(*pfs.GetTarRequest, pfs.API_GetTarServer) error
+type getTarConditionalFunc func(pfs.API_GetTarConditionalServer) error
 
 type mockCreateRepo struct{ handler createRepoFunc }
 type mockInspectRepo struct{ handler inspectRepoFunc }
@@ -431,78 +432,81 @@ type mockDeleteAllPFS struct{ handler deleteAllPFSFunc }
 type mockFsck struct{ handler fsckFunc }
 type mockPutTar struct{ handler putTarFunc }
 type mockGetTar struct{ handler getTarFunc }
+type mockGetTarConditional struct{ handler getTarConditionalFunc }
 
-func (mock *mockCreateRepo) Use(cb createRepoFunc)             { mock.handler = cb }
-func (mock *mockInspectRepo) Use(cb inspectRepoFunc)           { mock.handler = cb }
-func (mock *mockListRepo) Use(cb listRepoFunc)                 { mock.handler = cb }
-func (mock *mockDeleteRepo) Use(cb deleteRepoFunc)             { mock.handler = cb }
-func (mock *mockStartCommit) Use(cb startCommitFunc)           { mock.handler = cb }
-func (mock *mockFinishCommit) Use(cb finishCommitFunc)         { mock.handler = cb }
-func (mock *mockInspectCommit) Use(cb inspectCommitFunc)       { mock.handler = cb }
-func (mock *mockListCommit) Use(cb listCommitFunc)             { mock.handler = cb }
-func (mock *mockListCommitStream) Use(cb listCommitStreamFunc) { mock.handler = cb }
-func (mock *mockDeleteCommit) Use(cb deleteCommitFunc)         { mock.handler = cb }
-func (mock *mockFlushCommit) Use(cb flushCommitFunc)           { mock.handler = cb }
-func (mock *mockSubscribeCommit) Use(cb subscribeCommitFunc)   { mock.handler = cb }
-func (mock *mockBuildCommit) Use(cb buildCommitFunc)           { mock.handler = cb }
-func (mock *mockCreateBranch) Use(cb createBranchFunc)         { mock.handler = cb }
-func (mock *mockInspectBranch) Use(cb inspectBranchFunc)       { mock.handler = cb }
-func (mock *mockListBranch) Use(cb listBranchFunc)             { mock.handler = cb }
-func (mock *mockDeleteBranch) Use(cb deleteBranchFunc)         { mock.handler = cb }
-func (mock *mockPutFile) Use(cb putFileFunc)                   { mock.handler = cb }
-func (mock *mockCopyFile) Use(cb copyFileFunc)                 { mock.handler = cb }
-func (mock *mockGetFile) Use(cb getFileFunc)                   { mock.handler = cb }
-func (mock *mockInspectFile) Use(cb inspectFileFunc)           { mock.handler = cb }
-func (mock *mockListFile) Use(cb listFileFunc)                 { mock.handler = cb }
-func (mock *mockListFileStream) Use(cb listFileStreamFunc)     { mock.handler = cb }
-func (mock *mockWalkFile) Use(cb walkFileFunc)                 { mock.handler = cb }
-func (mock *mockGlobFile) Use(cb globFileFunc)                 { mock.handler = cb }
-func (mock *mockGlobFileStream) Use(cb globFileStreamFunc)     { mock.handler = cb }
-func (mock *mockDiffFile) Use(cb diffFileFunc)                 { mock.handler = cb }
-func (mock *mockDeleteFile) Use(cb deleteFileFunc)             { mock.handler = cb }
-func (mock *mockDeleteAllPFS) Use(cb deleteAllPFSFunc)         { mock.handler = cb }
-func (mock *mockFsck) Use(cb fsckFunc)                         { mock.handler = cb }
-func (mock *mockPutTar) Use(cb putTarFunc)                     { mock.handler = cb }
-func (mock *mockGetTar) Use(cb getTarFunc)                     { mock.handler = cb }
+func (mock *mockCreateRepo) Use(cb createRepoFunc)               { mock.handler = cb }
+func (mock *mockInspectRepo) Use(cb inspectRepoFunc)             { mock.handler = cb }
+func (mock *mockListRepo) Use(cb listRepoFunc)                   { mock.handler = cb }
+func (mock *mockDeleteRepo) Use(cb deleteRepoFunc)               { mock.handler = cb }
+func (mock *mockStartCommit) Use(cb startCommitFunc)             { mock.handler = cb }
+func (mock *mockFinishCommit) Use(cb finishCommitFunc)           { mock.handler = cb }
+func (mock *mockInspectCommit) Use(cb inspectCommitFunc)         { mock.handler = cb }
+func (mock *mockListCommit) Use(cb listCommitFunc)               { mock.handler = cb }
+func (mock *mockListCommitStream) Use(cb listCommitStreamFunc)   { mock.handler = cb }
+func (mock *mockDeleteCommit) Use(cb deleteCommitFunc)           { mock.handler = cb }
+func (mock *mockFlushCommit) Use(cb flushCommitFunc)             { mock.handler = cb }
+func (mock *mockSubscribeCommit) Use(cb subscribeCommitFunc)     { mock.handler = cb }
+func (mock *mockBuildCommit) Use(cb buildCommitFunc)             { mock.handler = cb }
+func (mock *mockCreateBranch) Use(cb createBranchFunc)           { mock.handler = cb }
+func (mock *mockInspectBranch) Use(cb inspectBranchFunc)         { mock.handler = cb }
+func (mock *mockListBranch) Use(cb listBranchFunc)               { mock.handler = cb }
+func (mock *mockDeleteBranch) Use(cb deleteBranchFunc)           { mock.handler = cb }
+func (mock *mockPutFile) Use(cb putFileFunc)                     { mock.handler = cb }
+func (mock *mockCopyFile) Use(cb copyFileFunc)                   { mock.handler = cb }
+func (mock *mockGetFile) Use(cb getFileFunc)                     { mock.handler = cb }
+func (mock *mockInspectFile) Use(cb inspectFileFunc)             { mock.handler = cb }
+func (mock *mockListFile) Use(cb listFileFunc)                   { mock.handler = cb }
+func (mock *mockListFileStream) Use(cb listFileStreamFunc)       { mock.handler = cb }
+func (mock *mockWalkFile) Use(cb walkFileFunc)                   { mock.handler = cb }
+func (mock *mockGlobFile) Use(cb globFileFunc)                   { mock.handler = cb }
+func (mock *mockGlobFileStream) Use(cb globFileStreamFunc)       { mock.handler = cb }
+func (mock *mockDiffFile) Use(cb diffFileFunc)                   { mock.handler = cb }
+func (mock *mockDeleteFile) Use(cb deleteFileFunc)               { mock.handler = cb }
+func (mock *mockDeleteAllPFS) Use(cb deleteAllPFSFunc)           { mock.handler = cb }
+func (mock *mockFsck) Use(cb fsckFunc)                           { mock.handler = cb }
+func (mock *mockPutTar) Use(cb putTarFunc)                       { mock.handler = cb }
+func (mock *mockGetTar) Use(cb getTarFunc)                       { mock.handler = cb }
+func (mock *mockGetTarConditional) Use(cb getTarConditionalFunc) { mock.handler = cb }
 
 type pfsServerAPI struct {
 	mock *mockPFSServer
 }
 
 type mockPFSServer struct {
-	api              pfsServerAPI
-	CreateRepo       mockCreateRepo
-	InspectRepo      mockInspectRepo
-	ListRepo         mockListRepo
-	DeleteRepo       mockDeleteRepo
-	StartCommit      mockStartCommit
-	FinishCommit     mockFinishCommit
-	InspectCommit    mockInspectCommit
-	ListCommit       mockListCommit
-	ListCommitStream mockListCommitStream
-	DeleteCommit     mockDeleteCommit
-	FlushCommit      mockFlushCommit
-	SubscribeCommit  mockSubscribeCommit
-	BuildCommit      mockBuildCommit
-	CreateBranch     mockCreateBranch
-	InspectBranch    mockInspectBranch
-	ListBranch       mockListBranch
-	DeleteBranch     mockDeleteBranch
-	PutFile          mockPutFile
-	CopyFile         mockCopyFile
-	GetFile          mockGetFile
-	InspectFile      mockInspectFile
-	ListFile         mockListFile
-	ListFileStream   mockListFileStream
-	WalkFile         mockWalkFile
-	GlobFile         mockGlobFile
-	GlobFileStream   mockGlobFileStream
-	DiffFile         mockDiffFile
-	DeleteFile       mockDeleteFile
-	DeleteAll        mockDeleteAllPFS
-	Fsck             mockFsck
-	PutTar           mockPutTar
-	GetTar           mockGetTar
+	api               pfsServerAPI
+	CreateRepo        mockCreateRepo
+	InspectRepo       mockInspectRepo
+	ListRepo          mockListRepo
+	DeleteRepo        mockDeleteRepo
+	StartCommit       mockStartCommit
+	FinishCommit      mockFinishCommit
+	InspectCommit     mockInspectCommit
+	ListCommit        mockListCommit
+	ListCommitStream  mockListCommitStream
+	DeleteCommit      mockDeleteCommit
+	FlushCommit       mockFlushCommit
+	SubscribeCommit   mockSubscribeCommit
+	BuildCommit       mockBuildCommit
+	CreateBranch      mockCreateBranch
+	InspectBranch     mockInspectBranch
+	ListBranch        mockListBranch
+	DeleteBranch      mockDeleteBranch
+	PutFile           mockPutFile
+	CopyFile          mockCopyFile
+	GetFile           mockGetFile
+	InspectFile       mockInspectFile
+	ListFile          mockListFile
+	ListFileStream    mockListFileStream
+	WalkFile          mockWalkFile
+	GlobFile          mockGlobFile
+	GlobFileStream    mockGlobFileStream
+	DiffFile          mockDiffFile
+	DeleteFile        mockDeleteFile
+	DeleteAll         mockDeleteAllPFS
+	Fsck              mockFsck
+	PutTar            mockPutTar
+	GetTar            mockGetTar
+	GetTarConditional mockGetTarConditional
 }
 
 func (api *pfsServerAPI) CreateRepo(ctx context.Context, req *pfs.CreateRepoRequest) (*types.Empty, error) {
@@ -696,6 +700,12 @@ func (api *pfsServerAPI) GetTar(req *pfs.GetTarRequest, serv pfs.API_GetTarServe
 		return api.mock.GetTar.handler(req, serv)
 	}
 	return errors.Errorf("unhandled pachd mock pfs.GetTar")
+}
+func (api *pfsServerAPI) GetTarConditional(serv pfs.API_GetTarConditionalServer) error {
+	if api.mock.GetTarConditional.handler != nil {
+		return api.mock.GetTarConditional.handler(serv)
+	}
+	return errors.Errorf("unhandled pachd mock pfs.GetTarConditional")
 }
 
 /* PPS Server Mocks */
@@ -1122,6 +1132,8 @@ type inspectTagFunc func(context.Context, *pfs.Tag) (*pfs.ObjectInfo, error)
 type listTagsFunc func(*pfs.ListTagsRequest, pfs.ObjectAPI_ListTagsServer) error
 type deleteTagsFunc func(context.Context, *pfs.DeleteTagsRequest) (*pfs.DeleteTagsResponse, error)
 type compactFunc func(context.Context, *types.Empty) (*types.Empty, error)
+type putObjDirectFunc func(pfs.ObjectAPI_PutObjDirectServer) error
+type getObjDirectFunc func(*pfs.GetObjDirectRequest, pfs.ObjectAPI_GetObjDirectServer) error
 
 type mockPutObject struct{ handler putObjectFunc }
 type mockPutObjectSplit struct{ handler putObjectSplitFunc }
@@ -1143,6 +1155,8 @@ type mockInspectTag struct{ handler inspectTagFunc }
 type mockListTags struct{ handler listTagsFunc }
 type mockDeleteTags struct{ handler deleteTagsFunc }
 type mockCompact struct{ handler compactFunc }
+type mockPutObjDirect struct{ handler putObjDirectFunc }
+type mockGetObjDirect struct{ handler getObjDirectFunc }
 
 func (mock *mockPutObject) Use(cb putObjectFunc)           { mock.handler = cb }
 func (mock *mockPutObjectSplit) Use(cb putObjectSplitFunc) { mock.handler = cb }
@@ -1164,6 +1178,8 @@ func (mock *mockInspectTag) Use(cb inspectTagFunc)         { mock.handler = cb }
 func (mock *mockListTags) Use(cb listTagsFunc)             { mock.handler = cb }
 func (mock *mockDeleteTags) Use(cb deleteTagsFunc)         { mock.handler = cb }
 func (mock *mockCompact) Use(cb compactFunc)               { mock.handler = cb }
+func (mock *mockPutObjDirect) Use(cb putObjDirectFunc)     { mock.handler = cb }
+func (mock *mockGetObjDirect) Use(cb getObjDirectFunc)     { mock.handler = cb }
 
 type objectServerAPI struct {
 	mock *mockObjectServer
@@ -1191,6 +1207,8 @@ type mockObjectServer struct {
 	ListTags       mockListTags
 	DeleteTags     mockDeleteTags
 	Compact        mockCompact
+	PutObjDirect   mockPutObjDirect
+	GetObjDirect   mockGetObjDirect
 }
 
 func (api *objectServerAPI) PutObject(serv pfs.ObjectAPI_PutObjectServer) error {
@@ -1312,6 +1330,18 @@ func (api *objectServerAPI) Compact(ctx context.Context, req *types.Empty) (*typ
 		return api.mock.Compact.handler(ctx, req)
 	}
 	return nil, errors.Errorf("unhandled pachd mock object.Compact")
+}
+func (api *objectServerAPI) PutObjDirect(serv pfs.ObjectAPI_PutObjDirectServer) error {
+	if api.mock.PutObjDirect.handler != nil {
+		return api.mock.PutObjDirect.handler(serv)
+	}
+	return errors.Errorf("unhandled pachd mock object.PutObjDirect")
+}
+func (api *objectServerAPI) GetObjDirect(req *pfs.GetObjDirectRequest, serv pfs.ObjectAPI_GetObjDirectServer) error {
+	if api.mock.GetObjDirect.handler != nil {
+		return api.mock.GetObjDirect.handler(req, serv)
+	}
+	return errors.Errorf("unhandled pachd mock object.GetObjDirect")
 }
 
 // MockPachd provides an interface for running the interface for a Pachd API
